@@ -10,9 +10,15 @@ type Fetcher interface {
 	Fetch(url string) (body string, urls []string, err error)
 }
 
+type Recorder interface {
+	// If URL has not been visited, record it and returns true
+	// If URL has been visited, returns false
+	Fetching(url string) (bool)
+}
+
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
-func Crawl(url string, depth int, fetcher Fetcher) {
+func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder) {
 	// TODO: Fetch URLs in parallel.
 	// TODO: Don't fetch the same URL twice.
 	// This implementation doesn't do either:
@@ -26,14 +32,31 @@ func Crawl(url string, depth int, fetcher Fetcher) {
 	}
 	fmt.Printf("found: %s %q\n", url, body)
 	for _, u := range urls {
-		Crawl(u, depth-1, fetcher)
+		if recorder.Fetching(u) {
+			Crawl(u, depth-1, fetcher, recorder)
+		} else {
+			fmt.Printf("already crawled: %s\n", u)
+		}
 	}
 	return
 }
 
 func main() {
-	Crawl("http://golang.org/", 4, fetcher)
+	Crawl("http://golang.org/", 4, fetcher, recorder)
 }
+
+type urlRecord map[string]bool
+
+func (r urlRecord) Fetching(url string) (bool) {
+	_, found := r[url]
+	if found {
+		return false
+	}
+	r[url] = true
+	return true
+}
+
+var recorder = make(urlRecord)
 
 // fakeFetcher is Fetcher that returns canned results.
 type fakeFetcher map[string]*fakeResult
