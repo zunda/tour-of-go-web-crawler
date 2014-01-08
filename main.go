@@ -16,9 +16,15 @@ type Recorder interface {
 	Fetching(url string) (bool)
 }
 
+func Print(ch chan string) {
+	for s := range ch {
+		fmt.Print(s)
+	}
+}
+
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
-func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder) {
+func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder, printqueue chan string) {
 	// TODO: Fetch URLs in parallel.
 	// TODO: Don't fetch the same URL twice.
 	// This implementation doesn't do either:
@@ -27,22 +33,24 @@ func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder) {
 	}
 	body, urls, err := fetcher.Fetch(url)
 	if err != nil {
-		fmt.Println(err)
+		printqueue <- err.Error() + "\n"
 		return
 	}
-	fmt.Printf("found: %s %q\n", url, body)
+	printqueue <- fmt.Sprintf("found: %s %q\n", url, body)
 	for _, u := range urls {
 		if recorder.Fetching(u) {
-			Crawl(u, depth-1, fetcher, recorder)
+			Crawl(u, depth-1, fetcher, recorder, printqueue)
 		} else {
-			fmt.Printf("already crawled: %s\n", u)
+			printqueue <- fmt.Sprintf("already crawled: %s\n", u)
 		}
 	}
 	return
 }
 
 func main() {
-	Crawl("http://golang.org/", 4, fetcher, recorder)
+	printqueue := make(chan string)
+	go Print(printqueue)
+	Crawl("http://golang.org/", 4, fetcher, recorder, printqueue)
 }
 
 type urlRecord map[string]bool
