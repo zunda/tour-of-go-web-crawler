@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 )
 
 type Fetcher interface {
@@ -24,10 +25,11 @@ func Print(ch chan string) {
 
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
-func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder, printqueue chan string) {
+func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder, printqueue chan string, wg *sync.WaitGroup) {
 	// TODO: Fetch URLs in parallel.
 	// TODO: Don't fetch the same URL twice.
 	// This implementation doesn't do either:
+	defer wg.Done()
 	if depth <= 0 {
 		return
 	}
@@ -39,7 +41,8 @@ func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder, printqueue
 	printqueue <- fmt.Sprintf("found: %s %q\n", url, body)
 	for _, u := range urls {
 		if recorder.Fetching(u) {
-			Crawl(u, depth-1, fetcher, recorder, printqueue)
+			wg.Add(1)
+			go Crawl(u, depth-1, fetcher, recorder, printqueue, wg)
 		} else {
 			printqueue <- fmt.Sprintf("already crawled: %s\n", u)
 		}
@@ -48,9 +51,12 @@ func Crawl(url string, depth int, fetcher Fetcher, recorder Recorder, printqueue
 }
 
 func main() {
+	var wg sync.WaitGroup
 	printqueue := make(chan string)
 	go Print(printqueue)
-	Crawl("http://golang.org/", 4, fetcher, recorder, printqueue)
+	wg.Add(1)
+	go Crawl("http://golang.org/", 4, fetcher, recorder, printqueue, &wg)
+	wg.Wait()
 }
 
 type urlRecord map[string]bool
