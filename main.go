@@ -22,6 +22,12 @@ type urlRecord struct {
 	ch chan bool
 }
 
+func (r *urlRecord) Init() {
+	r.urls = map[string]bool{}
+	r.ch = make(chan bool)
+	go func(){r.ch <- true}()
+}
+
 func (r *urlRecord) Fetching(url string) (bool) {
 	<- r.ch
 	_, found := r.urls[url]
@@ -60,8 +66,8 @@ func main() {
 	var wg sync.WaitGroup
 	printqueue := make(chan string)
 	go Print(printqueue)
-	urlrecord := urlRecord{map[string]bool{}, make(chan bool)}
-	go func(){urlrecord.ch <- true}()
+	var urlrecord urlRecord
+	urlrecord.Init()
 	wg.Add(1)
 	go Crawl("http://golang.org/", 4, fetcher, &urlrecord, printqueue, &wg)
 	wg.Wait()
