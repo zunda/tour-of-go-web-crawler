@@ -17,26 +17,29 @@ func Print(ch chan string) {
 	}
 }
 
-type urlRecord map[string]bool
+type urlRecord struct {
+	urls map[string]bool
+	ch chan bool
+}
 
-func Fetching(url string, record chan urlRecord) (bool) {
-	r := <- record
-	_, found := r[url]
+func (r *urlRecord) Fetching(url string) (bool) {
+	<- r.ch
+	_, found := r.urls[url]
 	if !found {
-		r[url] = true
+		r.urls[url] = true
 	}
-	go func(){record <- r}()
+	go func(){r.ch <- true}()
 	return !found
 }
 
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
-func Crawl(url string, depth int, fetcher Fetcher, record chan urlRecord, printqueue chan string, wg *sync.WaitGroup) {
+func Crawl(url string, depth int, fetcher Fetcher, record *urlRecord, printqueue chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if depth <= 0 {
 		return
 	}
-	if Fetching(url, record) {
+	if record.Fetching(url) {
 		body, urls, err := fetcher.Fetch(url)
 		if err != nil {
 			printqueue <- err.Error() + "\n"
@@ -56,11 +59,11 @@ func Crawl(url string, depth int, fetcher Fetcher, record chan urlRecord, printq
 func main() {
 	var wg sync.WaitGroup
 	printqueue := make(chan string)
-	record := make(chan urlRecord)
-	go func(){record <- urlRecord{}}()
 	go Print(printqueue)
+	urlrecord := urlRecord{map[string]bool{}, make(chan bool)}
+	go func(){urlrecord.ch <- true}()
 	wg.Add(1)
-	go Crawl("http://golang.org/", 4, fetcher, record, printqueue, &wg)
+	go Crawl("http://golang.org/", 4, fetcher, &urlrecord, printqueue, &wg)
 	wg.Wait()
 }
 
