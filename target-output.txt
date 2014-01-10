@@ -1,0 +1,10 @@
+already crawled: http://golang.org/
+already crawled: http://golang.org/
+already crawled: http://golang.org/
+already crawled: http://golang.org/cmd/
+already crawled: http://golang.org/pkg/
+found: http://golang.org/pkg/fmt/ "Package fmt"
+found: http://golang.org/pkg/os/ "Package os"
+found: http://golang.org/pkg/ "Packages"
+found: http://golang.org/ "The Go Programming Language"
+not found: http://golang.org/cmd/
