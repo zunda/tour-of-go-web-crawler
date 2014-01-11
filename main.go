@@ -11,10 +11,19 @@ type Fetcher interface {
 	Fetch(url string) (body string, urls []string, err error)
 }
 
-func Print(ch chan string) {
-	for s := range ch {
-		fmt.Print(s)
-	}
+type Printer struct {
+	ch chan bool
+}
+
+func (p *Printer) Init() {
+	p.ch = make(chan bool)
+	go func(){p.ch <- true}()
+}
+
+func (p* Printer) Print(s string) {
+	<- p.ch
+	fmt.Print(s)
+	go func(){p.ch <- true}()
 }
 
 type urlRecord struct {
@@ -40,7 +49,7 @@ func (r *urlRecord) Fetching(url string) (bool) {
 
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
-func Crawl(url string, depth int, fetcher Fetcher, record *urlRecord, printqueue chan string, wg *sync.WaitGroup) {
+func Crawl(url string, depth int, fetcher Fetcher, record *urlRecord, printer *Printer, wg *sync.WaitGroup) {
 	defer wg.Done()
 	if depth <= 0 {
 		return
@@ -48,28 +57,28 @@ func Crawl(url string, depth int, fetcher Fetcher, record *urlRecord, printqueue
 	if record.Fetching(url) {
 		body, urls, err := fetcher.Fetch(url)
 		if err != nil {
-			printqueue <- err.Error() + "\n"
+			printer.Print(err.Error() + "\n")
 			return
 		}
-		printqueue <- fmt.Sprintf("found: %s %q\n", url, body)
+		printer.Print(fmt.Sprintf("found: %s %q\n", url, body))
 		for _, u := range urls {
 				wg.Add(1)
-				go Crawl(u, depth-1, fetcher, record, printqueue, wg)
+				go Crawl(u, depth-1, fetcher, record, printer, wg)
 		}
 	} else {
-		printqueue <- fmt.Sprintf("already crawled: %s\n", url)
+		printer.Print(fmt.Sprintf("already crawled: %s\n", url))
 	}
 	return
 }
 
 func main() {
 	var wg sync.WaitGroup
-	printqueue := make(chan string)
-	go Print(printqueue)
+	var printer Printer
+	printer.Init()
 	var urlrecord urlRecord
 	urlrecord.Init()
 	wg.Add(1)
-	go Crawl("http://golang.org/", 4, fetcher, &urlrecord, printqueue, &wg)
+	go Crawl("http://golang.org/", 4, fetcher, &urlrecord, &printer, &wg)
 	wg.Wait()
 }
 
