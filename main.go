@@ -12,34 +12,28 @@ type Fetcher interface {
 }
 
 type Printer struct {
-	ch chan bool
+	m sync.Mutex
 }
 
 func (p *Printer) Print(s string) {
-	if p.ch == nil {
-		p.ch = make(chan bool)
-	} else {
-		<-p.ch
-	}
-	defer func() { go func() { p.ch <- true }() }()
+	defer func() { p.m.Unlock() }()
+	p.m.Lock()
 	fmt.Print(s)
 }
 
 // urlRecord records URLs that have been fetched
 type urlRecord struct {
 	urls map[string]bool
-	ch   chan bool
+	m    sync.Mutex
 }
 
 // returns true when the url is not yet fetched and records it as fetched
 func (r *urlRecord) Fetching(url string) bool {
-	if r.ch == nil {
+	if r.urls == nil {
 		r.urls = map[string]bool{}
-		r.ch = make(chan bool)
-	} else {
-		<-r.ch
 	}
-	defer func() { go func() { r.ch <- true }() }()
+	defer func() { r.m.Unlock() }()
+	r.m.Lock()
 	_, found := r.urls[url]
 	if !found {
 		r.urls[url] = true
