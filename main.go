@@ -25,26 +25,6 @@ func (p *Printer) Print(s string) {
 	go func() { p.ch <- true }()
 }
 
-type urlRecord struct {
-	urls map[string]bool
-	ch   chan bool
-}
-
-func (r *urlRecord) Fetching(url string) bool {
-	if r.ch == nil {
-		r.urls = map[string]bool{}
-		r.ch = make(chan bool)
-		go func() { r.ch <- true }()
-	}
-	<-r.ch
-	_, found := r.urls[url]
-	if !found {
-		r.urls[url] = true
-	}
-	go func() { r.ch <- true }()
-	return !found
-}
-
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
 func Crawl(url string, depth int, fetcher Fetcher, record *urlRecord, printer *Printer, wg *sync.WaitGroup) {
@@ -76,6 +56,28 @@ func main() {
 	wg.Add(1)
 	go Crawl("http://golang.org/", 4, fetcher, &urlrecord, &printer, &wg)
 	wg.Wait()
+}
+
+// urlRecord records URLs that have been fetched
+type urlRecord struct {
+	urls map[string]bool
+	ch   chan bool
+}
+
+// returns true when the url is not yet fetched and records it as fetched
+func (r *urlRecord) Fetching(url string) bool {
+	if r.ch == nil {
+		r.urls = map[string]bool{}
+		r.ch = make(chan bool)
+		go func() { r.ch <- true }()
+	}
+	<-r.ch
+	_, found := r.urls[url]
+	if !found {
+		r.urls[url] = true
+	}
+	go func() { r.ch <- true }()
+	return !found
 }
 
 // fakeFetcher is Fetcher that returns canned results.
