@@ -15,12 +15,11 @@ type Printer struct {
 	ch chan bool
 }
 
-func (p *Printer) Init() {
-	p.ch = make(chan bool)
-	go func() { p.ch <- true }()
-}
-
 func (p *Printer) Print(s string) {
+	if p.ch == nil {
+		p.ch = make(chan bool)
+		go func() { p.ch <- true }()
+	}
 	<-p.ch
 	fmt.Print(s)
 	go func() { p.ch <- true }()
@@ -74,7 +73,6 @@ func Crawl(url string, depth int, fetcher Fetcher, record *urlRecord, printer *P
 func main() {
 	var wg sync.WaitGroup
 	var printer Printer
-	printer.Init()
 	var urlrecord urlRecord
 	urlrecord.Init()
 	wg.Add(1)
