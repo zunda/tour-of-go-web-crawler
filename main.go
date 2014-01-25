@@ -17,33 +17,33 @@ type Printer struct {
 
 func (p *Printer) Init() {
 	p.ch = make(chan bool)
-	go func(){p.ch <- true}()
+	go func() { p.ch <- true }()
 }
 
-func (p* Printer) Print(s string) {
-	<- p.ch
+func (p *Printer) Print(s string) {
+	<-p.ch
 	fmt.Print(s)
-	go func(){p.ch <- true}()
+	go func() { p.ch <- true }()
 }
 
 type urlRecord struct {
 	urls map[string]bool
-	ch chan bool
+	ch   chan bool
 }
 
 func (r *urlRecord) Init() {
 	r.urls = map[string]bool{}
 	r.ch = make(chan bool)
-	go func(){r.ch <- true}()
+	go func() { r.ch <- true }()
 }
 
-func (r *urlRecord) Fetching(url string) (bool) {
-	<- r.ch
+func (r *urlRecord) Fetching(url string) bool {
+	<-r.ch
 	_, found := r.urls[url]
 	if !found {
 		r.urls[url] = true
 	}
-	go func(){r.ch <- true}()
+	go func() { r.ch <- true }()
 	return !found
 }
 
@@ -62,8 +62,8 @@ func Crawl(url string, depth int, fetcher Fetcher, record *urlRecord, printer *P
 		}
 		printer.Print(fmt.Sprintf("found: %s %q\n", url, body))
 		for _, u := range urls {
-				wg.Add(1)
-				go Crawl(u, depth-1, fetcher, record, printer, wg)
+			wg.Add(1)
+			go Crawl(u, depth-1, fetcher, record, printer, wg)
 		}
 	} else {
 		printer.Print(fmt.Sprintf("already crawled: %s\n", url))
@@ -81,7 +81,6 @@ func main() {
 	go Crawl("http://golang.org/", 4, fetcher, &urlrecord, &printer, &wg)
 	wg.Wait()
 }
-
 
 // fakeFetcher is Fetcher that returns canned results.
 type fakeFetcher map[string]*fakeResult
