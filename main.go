@@ -37,9 +37,9 @@ func (r *urlRecord) Fetching(url string) bool {
 		r.urls = map[string]bool{}
 		r.ch = make(chan bool)
 	} else {
-		//<-r.ch
+		<-r.ch
 	}
-	//defer func() { go func() { r.ch <- true }() }()
+	defer func() { go func() { r.ch <- true }() }()
 	_, found := r.urls[url]
 	if !found {
 		r.urls[url] = true
