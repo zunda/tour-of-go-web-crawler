@@ -1,6 +1,11 @@
-include Makefile.standardgo
-
 default: run
+
+run: main.go
+	if { which go; } then \
+		go run main.go; \
+	else \
+		gccgo -o $@ $< && ./a.out; \
+	fi
 
 check:
 	make -s run | tee actual-output.txt && \
@@ -9,4 +14,4 @@ check:
 	echo OK
 
 clean:
-	rm -f actual-output.txt sorted-output.txt
+	rm -f a.out actual-output.txt sorted-output.txt
