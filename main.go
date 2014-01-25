@@ -21,8 +21,8 @@ func (p *Printer) Print(s string) {
 	} else {
 		<-p.ch
 	}
+	defer func() { go func() { p.ch <- true }() }()
 	fmt.Print(s)
-	go func() { p.ch <- true }()
 }
 
 // urlRecord records URLs that have been fetched
@@ -37,13 +37,13 @@ func (r *urlRecord) Fetching(url string) bool {
 		r.urls = map[string]bool{}
 		r.ch = make(chan bool)
 	} else {
-		<-r.ch
+		//<-r.ch
 	}
+	//defer func() { go func() { r.ch <- true }() }()
 	_, found := r.urls[url]
 	if !found {
 		r.urls[url] = true
 	}
-	go func() { r.ch <- true }()
 	return !found
 }
 
