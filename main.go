@@ -16,9 +16,9 @@ type Printer struct {
 }
 
 func (p *Printer) Print(s string) {
-	defer func() { p.m.Unlock() }()
 	p.m.Lock()
 	fmt.Print(s)
+	p.m.Unlock()
 }
 
 // urlRecord records URLs that have been fetched
@@ -32,12 +32,12 @@ func (r *urlRecord) Fetching(url string) bool {
 	if r.urls == nil {
 		r.urls = map[string]bool{}
 	}
-	defer func() { r.m.Unlock() }()
 	r.m.Lock()
 	_, found := r.urls[url]
 	if !found {
 		r.urls[url] = true
 	}
+	r.m.Unlock()
 	return !found
 }
 
