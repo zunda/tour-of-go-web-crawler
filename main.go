@@ -18,9 +18,9 @@ type Printer struct {
 func (p *Printer) Print(s string) {
 	if p.ch == nil {
 		p.ch = make(chan bool)
-		go func() { p.ch <- true }()
+	} else {
+		<-p.ch
 	}
-	<-p.ch
 	fmt.Print(s)
 	go func() { p.ch <- true }()
 }
@@ -36,9 +36,9 @@ func (r *urlRecord) Fetching(url string) bool {
 	if r.ch == nil {
 		r.urls = map[string]bool{}
 		r.ch = make(chan bool)
-		go func() { r.ch <- true }()
+	} else {
+		<-r.ch
 	}
-	<-r.ch
 	_, found := r.urls[url]
 	if !found {
 		r.urls[url] = true
