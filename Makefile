@@ -1,7 +1,7 @@
 default: run
 
 run: main.go
-	if { which go; } then \
+	if { which go > /dev/null; } then \
 		go run main.go; \
 	else \
 		gccgo -o $@ $< && ./a.out; \
